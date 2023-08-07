@@ -1,22 +1,16 @@
-'''
-allow clients to
-1. create stores, each with a name and a list of stocked items.
-2. create an item within a store, each with a name and a price.
-3. retrieve a list of all stores and their items.
-4. given its name, retrieve an individual store and all its items.
-5. given a store name, retrieve only a list of item within it.
-'''
-
 import os
+import redis
 
 from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from dotenv import load_dotenv
+from rq import Queue
 
 from db import db
 from blocklist import BLOCKLIST
-import models # sqlalchemy needs model to create tables
+import models
 
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
@@ -25,16 +19,21 @@ from resources.user import blp as UserBlueprint
 
 
 def create_app(db_url=None):
-    app = Flask(__name__) # create a flask app
+    app = Flask(__name__)
+    load_dotenv()
 
-    app.config["PROPAGATE_EXCEPTIONS"] = True # raise errors
+    connection = redis.from_url(
+        os.getenv("REDIS_URL")
+    )
+    app.queue = Queue("emails", connection=connection)
+    app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["API_TITLE"] = "Stores REST API"
     app.config["API_VERSION"] = "v1"
-    app.config["OPENAPI_VERSION"] = "3.0.3" # the standard api version to use
-    app.config["OPENAPI_URL_PREFIX"] = "/" # where the route starts
-    app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui" # see documentation in: http://localhost:5000/swagger-ui
+    app.config["OPENAPI_VERSION"] = "3.0.3"
+    app.config["OPENAPI_URL_PREFIX"] = "/"
+    app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db") # if-else
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
     migrate = Migrate(app, db)
@@ -59,15 +58,13 @@ def create_app(db_url=None):
     @jwt.needs_fresh_token_loader
     def token_not_fresh_callback(jwt_header, jwt_payload):
         return(
-            jsonify({"description": "The token is not fres.",
+            jsonify({"description": "The token is not fresh.",
                      "error": "fresh_token_required"}),
             401,
         )
 
-    # add extra information to jwt when create it
     @jwt.additional_claims_loader
     def add_claims_to_jwt(identity):
-        # need to look into the database and see who are admins
         if identity == 1:
             return {"is_admin": True}
         return {"is_admin": False}
@@ -81,7 +78,7 @@ def create_app(db_url=None):
         )
     
     @jwt.invalid_token_loader
-    def invalid_token_callback(error): # if there is no jwt, use an error in argument
+    def invalid_token_callback(error):
         return (
             jsonify({"message": "Sigature verification failed.",
                      "error": "invalid_token"}),

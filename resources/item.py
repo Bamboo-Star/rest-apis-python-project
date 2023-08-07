@@ -7,24 +7,22 @@ from db import db
 from models import ItemModel
 from schemas import ItemSchema, ItemUpdateSchema
 
-# each blueprint has its unique name
+
 blp = Blueprint("Items", __name__, description="Operations on items")
 
 
 @blp.route("/item")
 class ItemList(MethodView):
     @jwt_required()
-    @blp.response(200, ItemSchema(many=True)) # an instance of ItemSchema to validate multiple items
+    @blp.response(200, ItemSchema(many=True))
     def get(self):
         return ItemModel.query.all()
 
-    # the 2nd argument item_data is payload from user
-    # it would first pass through ItemSchema and would pass to the post() function after validation
     @jwt_required(fresh=True)
     @blp.arguments(ItemSchema)
-    @blp.response(201, ItemSchema) # response decorator should be deeper than input
+    @blp.response(201, ItemSchema)
     def post(self, item_data):
-        item = ItemModel(**item_data) # "**" turns the dictionary into keyword arguments
+        item = ItemModel(**item_data)
 
         try:
             db.session.add(item)
@@ -57,7 +55,6 @@ class Item(MethodView):
         db.session.commit()
         return {"message": "Item deleted."}
 
-    # item_data in front of other parameters
     @jwt_required(fresh=True)
     @blp.arguments(ItemUpdateSchema)
     @blp.response(200, ItemSchema)
@@ -67,7 +64,6 @@ class Item(MethodView):
         if item:
             item.price = item_data["price"]
             item.name = item_data["name"]
-        # if the item does not exist, need to pass an extra store_id
         else:
             item = ItemModel(id=item_id, **item_data)
 

@@ -1,14 +1,8 @@
 from marshmallow import Schema, fields
 
-# an instance of either ItemModel or StoreModel contains a nested model of the other
-# ItemSchema and StoreSchema need mutual and non-recursive nesting
-# so need PainItemSchema and PainStoreSchema
-
 class PainItemSchema(Schema):
-
-    # should this field be used when loading data from request or returning data from our api?
-    id = fields.Int(dump_only=True) # we generate the field by ourselves, so only required for returning data inside api
-    name = fields.Str(required=True) # require for both ends
+    id = fields.Int(dump_only=True)
+    name = fields.Str(required=True)
     price = fields.Float(required=True)
 
 class PainStoreSchema(Schema):
@@ -20,15 +14,13 @@ class PainTagSchema(Schema):
     name = fields.Str(required=True)
 
 class ItemUpdateSchema(Schema):
-
-    # name and price are not required
     name = fields.Str()
     price = fields.Float()
     store_id = fields.Int()
 
 class ItemSchema(PainItemSchema):
-    store_id = fields.Int(required=True, load_only=True) # automatically load store data
-    store = fields.Nested(PainStoreSchema(), dump_only=True) # Nested to present relationships between objects
+    store_id = fields.Int(required=True, load_only=True)
+    store = fields.Nested(PainStoreSchema(), dump_only=True)
     tags = fields.List(fields.Nested(PainTagSchema()), dump_only=True)
 
 class StoreSchema(PainStoreSchema):
@@ -49,5 +41,6 @@ class UserSchema(Schema):
     id = fields.Int(dump_only=True)
     username = fields.Str(required=True)
     password = fields.Str(required=True, load_only=True)
-    # never return the password to client
-    # if we remove load_only=True and get user again, can see hashed password in the result
+
+class UserRegisterSchema(UserSchema):
+    email = fields.Str(required=True)

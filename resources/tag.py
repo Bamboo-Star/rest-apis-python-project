@@ -17,17 +17,12 @@ class TagsInStore(MethodView):
     @blp.response(200, TagSchema(many=True))
     def get(self, store_id):
         store = StoreModel.query.get_or_404(store_id)
-        return store.tags.all() # use StoreModel to simplify data retrieve
+        return store.tags.all()
         
     @jwt_required(fresh=True)
     @blp.arguments(TagSchema)
     @blp.response(201, TagSchema)
-    def post(self, tag_data, store_id): # tag_data from api body, store_id from url content
-        
-        # do not need since we do not specify unique name in TagSchema
-        # if TagModel.query.filter(TagModel.store_id == store_id, TagModel.name == tag_data["name"]).first():
-        #     abort(400, message="A tag with the name already exists in that store.")
-        
+    def post(self, tag_data, store_id):
         tag = TagModel(**tag_data, store_id=store_id)
 
         try:
@@ -48,7 +43,7 @@ class LinkTagsToItem(MethodView):
         item = ItemModel.query.get_or_404(item_id)
         tag = TagModel.query.get_or_404(tag_id)
 
-        item.tags.append(tag) # append tag to db.relationship()
+        item.tags.append(tag)
 
         try:
             db.session.add(item)
@@ -56,7 +51,7 @@ class LinkTagsToItem(MethodView):
         except SQLAlchemyError:
             abort(500, message="An error occurred when linking the tag to the item.")
         
-        return tag
+        return {"message": "Item added to tag", "item": item, "tag": tag}
     
     @jwt_required(fresh=True)
     @blp.response(200, TagAndItemSchema)
@@ -67,7 +62,7 @@ class LinkTagsToItem(MethodView):
         if item.store_id != tag.store_id:
             abort(400, message="Make sure item and tag belong to the same store before linking.")
 
-        item.tags.remove(tag) # append tag to db.relationship()
+        item.tags.remove(tag)
         
         try:
             db.session.add(item)
@@ -87,7 +82,7 @@ class Tag(MethodView):
         tag = TagModel.query.get_or_404(tag_id)
         return tag
     
-    # multiple response decorator for documentation
+
     @jwt_required(fresh=True)
     @blp.response(
         202,
@@ -96,7 +91,7 @@ class Tag(MethodView):
     )
     @blp.alt_response(404, description="Tag not found.")
     @blp.alt_response(
-        404, 
+        400, 
         description="Returned if the tag is assigned to one or more items. In this case, the tag is not deleted."
     )
     def delete(self, tag_id):

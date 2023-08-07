@@ -7,13 +7,14 @@ from db import db
 from models import StoreModel
 from schemas import StoreSchema
 
-# each blueprint has its unique name
+
 blp = Blueprint("stores", __name__, description="Operations on stores")
 
 
 
 @blp.route("/store")
 class StoreList(MethodView):
+    @jwt_required()
     @blp.response(200, StoreSchema(many=True))
     def get(self):
         return StoreModel.query.all()
@@ -36,8 +37,7 @@ class StoreList(MethodView):
     
 
 
-# create a different class for all_store methods
-# because the endpoint (route) is different
+
 @blp.route("/store/<int:store_id>")
 class Store(MethodView):
     @jwt_required()

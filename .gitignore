@@ -1,6 +1,10 @@
 .DS_Store
+.env
+.idea
 .venv
 __pycache__
-data.db
-notes.txt
+section_notes.txt
+file_notes.txt
+testing_notes.txt
 python_refresher
+test.py

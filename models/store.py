@@ -8,9 +8,3 @@ class StoreModel(db.Model):
 
     items = db.relationship("ItemModel", back_populates="store", lazy="dynamic", cascade="all, delete")
     tags = db.relationship("TagModel", back_populates="store", lazy="dynamic", cascade="all, delete")
-    
-    # back_populates tells SqlAlchemy which relationship name to link with when it joins the two tables
-    # lazy="dynamic" caches and speeds up the program
-    # cascade="all, delete" deletes the children (items) when we delete the parent (store)
-
-    
